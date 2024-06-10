@@ -13,6 +13,8 @@ from sys import argv
 import re
 import os
 from datetime import datetime
+import xlsxwriter
+from openpyxl import load_workbook
 
 def main():
     sales_csv_path = get_sales_csv_path()
@@ -71,17 +73,37 @@ def process_sales_data(sales_csv_path, orders_dir_path):
         orders_dir_path (str): Path of orders directory
     """
     # TODO: Import the sales data from the CSV file into a DataFrame
+    salesDataFrame = pd.read_csv(sales_csv_path)
     # TODO: Insert a new "TOTAL PRICE" column into the DataFrame
+    salesDataFrame.insert(7, 'TOTAL PRICE', salesDataFrame['ITEM QUANTITY'] * salesDataFrame['ITEM PRICE'])
     # TODO: Remove columns from the DataFrame that are not needed
+    salesDataFrame = salesDataFrame.drop(['ADDRESS', 'CITY', 'STATE', 'POSTAL CODE', 'COUNTRY'], axis=1)
+
     # TODO: Groups orders by ID and iterate 
+    salesDataFrame = salesDataFrame.drop_duplicates(subset=['ORDER ID'])
+
         # TODO: Remove the 'ORDER ID' column
+    salesDataFrame = salesDataFrame.drop(['ORDER ID'], axis=1)
         # TODO: Sort the items by item number
+    salesDataFrame = salesDataFrame.sort_values('ITEM NUMBER')
         # TODO: Append a "GRAND TOTAL" row
+    salesDataFrame.at['GRAND TOTAL', 'TOTAL PRICE'] = salesDataFrame['TOTAL PRICE'].sum()
+    print(salesDataFrame)
         # TODO: Determine the file name and full path of the Excel sheet
+    excelFilePath = f'{orders_dir_path}\\sales_csv.xlsx'
+    worksheet = 'Sales Info'
         # TODO: Export the data to an Excel sheet
+    salesDataFrame.to_excel(excelFilePath, index=False, sheet_name=worksheet)
         # TODO: Format the Excel sheet
+    workbook = load_workbook(excelFilePath)
+    worksheet = workbook.active
         # TODO: Define format for the money columns
+    for col in worksheet.iter_cols(min_row=1, min_col=6, max_col=7):
+        for cell in col:
+            cell.number_format = '$#,##0.00' 
         # TODO: Format each colunm
+    worksheet.column_dimensions.width = 80
+    workbook.save(excelFilePath)
         # TODO: Close the Excelwriter 
     return
 
