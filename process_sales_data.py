@@ -116,6 +116,7 @@ def process_sales_data(sales_csv_path, orders_dir_path):
             cell.number_format = '$#,##0.00'  
     totalValue = f'G{worksheet.max_row}'
     #Format the Grand Total row
+    # TODO: Finish formatting GRAND TOTAL cell to be width jusitified to text length
     worksheet[totalValue].number_format = '$#,##0.00'
 
     workbook.save(excelFilePath)
