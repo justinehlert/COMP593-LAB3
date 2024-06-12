@@ -55,9 +55,8 @@ def create_orders_dir(sales_csv_path):
     salesParentDirectory = os.path.abspath(os.path.join(sales_csv_path, os.pardir))
     #Determine the path of the directory to hold the order data files
     match = re.search(r".*^\S+", str(datetime.now()))
-    today = match.group()
     #Create the orders directory if it does not already exist
-    orderDir = f"{salesParentDirectory}\\Orders_{today}"
+    orderDir = f"{salesParentDirectory}\\Orders_{match.group()}"
     try:
         os.mkdir(orderDir)
     except OSError:
@@ -74,8 +73,10 @@ def process_sales_data(sales_csv_path, orders_dir_path):
     """
     #Import the sales data from the CSV file into a DataFrame
     salesDataFrame = pd.read_csv(sales_csv_path)
+    
     #Insert a new "TOTAL PRICE" column into the DataFrame
     salesDataFrame.insert(7, 'TOTAL PRICE', salesDataFrame['ITEM QUANTITY'] * salesDataFrame['ITEM PRICE'])
+
     #Remove columns from the DataFrame that are not needed
     salesDataFrame = salesDataFrame.drop(['ADDRESS', 'CITY', 'STATE', 'POSTAL CODE', 'COUNTRY'], axis=1)
 
@@ -84,16 +85,19 @@ def process_sales_data(sales_csv_path, orders_dir_path):
 
     #Remove the 'ORDER ID' column
     salesDataFrame = salesDataFrame.drop(['ORDER ID'], axis=1)
+
     #Sort the items by item number
     salesDataFrame = salesDataFrame.sort_values('ITEM NUMBER')
+
     #Calculate the TOTAL PRICE
     totalPrice = salesDataFrame['TOTAL PRICE'].sum()
+    
     #Determine the file name and full path of the Excel sheet
     excelFilePath = f'{orders_dir_path}\\sales_csv.xlsx'
-    worksheet = 'Sales Info'
+
     #Export the data to an Excel sheet
     try:
-        salesDataFrame.to_excel(excelFilePath, index=False, sheet_name=worksheet)
+        salesDataFrame.to_excel(excelFilePath, index=False, sheet_name='Sales Info')
     except PermissionError:
         print("ERROR: FILE WITH SAME NAME IS OPEN")
     
@@ -107,17 +111,15 @@ def process_sales_data(sales_csv_path, orders_dir_path):
 
     #Format each colunm then saving changes
     for column_cells in worksheet.columns:
-        length = max(len(str(cell.value) or "") for cell in column_cells)
-        worksheet.column_dimensions[get_column_letter(column_cells[0].column)].width = length
+        worksheet.column_dimensions[get_column_letter(column_cells[0].column)].width = max(len(str(cell.value) or "") for cell in column_cells)
     
     #Define format for the money columns
     for col in worksheet.iter_cols(min_row=1, min_col=6, max_col=7):
         for cell in col:
             cell.number_format = '$#,##0.00'  
-    totalValue = f'G{worksheet.max_row}'
+
     #Format the Grand Total row
-    # TODO: Finish formatting GRAND TOTAL cell to be width jusitified to text length
-    worksheet[totalValue].number_format = '$#,##0.00'
+    worksheet[f'G{worksheet.max_row}'].number_format = '$#,##0.00'
 
     workbook.save(excelFilePath)
 
